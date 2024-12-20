@@ -51,7 +51,7 @@ class RequestTransfer(BaseModel):
 # ---- Events used to orchestrate the workflow ----
 
 
-class ActiveSpeakerEvent(Event):
+class ActiveAgentEvent(Event):
     pass
 
 
@@ -99,7 +99,7 @@ DEFAULT_ORCHESTRATOR_PROMPT = (
 DEFAULT_TOOL_REJECT_STR = "The tool call was not approved, likely due to a mistake or preconditions not being met."
 
 
-class ConciergeAgent(Workflow):
+class SystemAgent(Workflow):
     def __init__(
         self,
         orchestrator_prompt: str | None = None,
@@ -115,7 +115,7 @@ class ConciergeAgent(Workflow):
     @step
     async def setup(
         self, ctx: Context, ev: StartEvent
-    ) -> ActiveSpeakerEvent | OrchestratorEvent:
+    ) -> OrchestratorEvent:
         """Sets up the workflow, validates inputs, and stores them in the context."""
         active_speaker = await ctx.get("active_speaker", default="")
         user_msg = ev.get("user_msg")
@@ -147,15 +147,15 @@ class ConciergeAgent(Workflow):
         await ctx.set("user_state", initial_state)
 
         # if there is an active speaker, we need to transfer forward the user to them
-        if active_speaker:
-            return ActiveSpeakerEvent()
+        # if active_speaker:
+        #     return ActiveAgentEvent()
 
         # otherwise, we need to decide who the next active speaker is
         return OrchestratorEvent(user_msg=user_msg)
 
     @step
     async def speak_with_sub_agent(
-        self, ctx: Context, ev: ActiveSpeakerEvent
+        self, ctx: Context, ev: ActiveAgentEvent
     ) -> ToolCallEvent | ToolRequestEvent | StopEvent:
         """Speaks with the active sub-agent and handles tool calls (if any)."""
         # Setup the agent for the active speaker
@@ -174,8 +174,7 @@ class ConciergeAgent(Workflow):
 
         llm_input = [ChatMessage(role="system", content=system_prompt)] + chat_history
 
-        # inject the request transfer tool into the list of tools
-        tools = [get_function_tool(RequestTransfer)] + agent_config.tools
+        tools = agent_config.tools
 
         response = await llm.achat_with_tools(tools, chat_history=llm_input)
 
@@ -195,13 +194,7 @@ class ConciergeAgent(Workflow):
         await ctx.set("num_tool_calls", len(tool_calls))
 
         for tool_call in tool_calls:
-            if tool_call.tool_name == "RequestTransfer":
-                await ctx.set("active_speaker", None)
-                ctx.write_event_to_stream(
-                    ProgressEvent(msg="Agent is requesting a transfer. Please hold.")
-                )
-                return OrchestratorEvent()
-            elif tool_call.tool_name in agent_config.tools_requiring_human_confirmation:
+            if tool_call.tool_name in agent_config.tools_requiring_human_confirmation:
                 ctx.write_event_to_stream(
                     ToolRequestEvent(
                         prefix=f"Tool {tool_call.tool_name} requires human approval.",
@@ -238,14 +231,15 @@ class ConciergeAgent(Workflow):
             return ToolCallResultEvent(
                 chat_message=ChatMessage(
                     role="tool",
-                    content=ev.response or self.default_tool_reject_str,
+                    content=self.default_tool_reject_str + f"user reason: {ev.response}",
+                    additional_kwargs ={"tool_call_id": ev.tool_id, "name": ev.tool_name},
                 )
             )
 
     @step(num_workers=4)
     async def handle_tool_call(
         self, ctx: Context, ev: ToolCallEvent
-    ) -> ActiveSpeakerEvent:
+    ) -> ActiveAgentEvent:
         """Handles the execution of a tool call."""
         tool_call = ev.tool_call
         tools_by_name = {tool.metadata.get_name(): tool for tool in ev.tools}
@@ -293,7 +287,7 @@ class ConciergeAgent(Workflow):
     @step
     async def aggregate_tool_results(
         self, ctx: Context, ev: ToolCallResultEvent
-    ) -> ActiveSpeakerEvent:
+    ) -> ActiveAgentEvent:
         """Collects the results of all tool calls and updates the chat history."""
         num_tool_calls = await ctx.get("num_tool_calls")
         results = ctx.collect_events(ev, [ToolCallResultEvent] * num_tool_calls)
@@ -305,12 +299,12 @@ class ConciergeAgent(Workflow):
             chat_history.append(result.chat_message)
         await ctx.set("chat_history", chat_history)
 
-        return ActiveSpeakerEvent()
+        return ActiveAgentEvent()
 
     @step
     async def orchestrator(
         self, ctx: Context, ev: OrchestratorEvent
-    ) -> ActiveSpeakerEvent | StopEvent:
+    ) -> ActiveAgentEvent | StopEvent:
         """Decides which agent to run next, if any."""
         agent_configs = await ctx.get("agent_configs")
         chat_history = await ctx.get("chat_history")
@@ -354,4 +348,4 @@ class ConciergeAgent(Workflow):
             ProgressEvent(msg=f"Transferring to agent {selected_agent}")
         )
 
-        return ActiveSpeakerEvent()
+        return ActiveAgentEvent()

@@ -3,3 +3,5 @@ poc.py
 lib
 .mypy_cache
 .ruff_cache
+.idea
+__pycache__

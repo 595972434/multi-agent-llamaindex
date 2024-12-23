@@ -1,0 +1,2 @@
+API_BASE=openai-api-base-url
+API_KEY=openai-api-key

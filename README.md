@@ -4,17 +4,14 @@ This repo refers to [multi-agent-concierge](https://github.com/run-llama/multi-a
 ![flow-chat](./flow-chart.png)
 
 ## Setup
-specify python3.12
+- specify python3.12
+- install dependencies
+- rename .demo_env to .env and update api base url and api key
+- start service
+
 ```bash
 poetry env use python3.12
-```
-install dependencies
-```bash
 poetry install
-```
-
-start service
-```bash
 poetry run python main.py
 ```
 

@@ -1,6 +1,7 @@
 import asyncio
 import os
 
+import requests
 from dotenv import load_dotenv
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.tools import BaseTool
@@ -24,13 +25,14 @@ def get_initial_state() -> dict:
 
 def get_health_coach_tools() -> list[BaseTool]:
     async def get_user_information(ctx: Context) -> str:
-        """Get the user information from API and Database."""
-        mocked_user_persona = {"age": 25, "weight": 70, "height": 180}
-        mocked_user_tasks = ["walk 1000 steps", "eat two apples"]
+        """Get the user information from API"""
         ctx.write_event_to_stream(ProgressEvent(msg="Retrieving user information"))
+        response = requests.get('http://localhost:3000/user-info')
+        user_info = response.json()
+        print(f"Get the user information from API: {user_info}")
         user_state = await ctx.get("user_state")
-        user_state["user_persona"] = mocked_user_persona
-        user_state["user_tasks"] = mocked_user_tasks
+        user_state["user_persona"] = user_info["user_persona"]
+        user_state["user_tasks"] = user_info["user_tasks"]
         await ctx.set("user_state", user_state)
         return f"The user information is {user_state["user_persona"]} and the user tasks are {user_state["user_tasks"]}."
 

@@ -306,46 +306,49 @@ class SystemAgent(Workflow):
         self, ctx: Context, ev: OrchestratorEvent
     ) -> ActiveAgentEvent | StopEvent:
         """Decides which agent to run next, if any."""
-        agent_configs = await ctx.get("agent_configs")
-        chat_history = await ctx.get("chat_history")
-
-        agent_context_str = ""
-        for agent_name, agent_config in agent_configs.items():
-            agent_context_str += f"{agent_name}: {agent_config.description}\n"
-
         user_state = await ctx.get("user_state")
-        user_state_str = "\n".join([f"{k}: {v}" for k, v in user_state.items()])
-        system_prompt = self.orchestrator_prompt.format(
-            agent_context_str=agent_context_str, user_state_str=user_state_str
-        )
 
-        llm_input = [ChatMessage(role="system", content=system_prompt)] + chat_history
-        llm = await ctx.get("llm")
+        if not user_state:
+            agent_configs = await ctx.get("agent_configs")
+            chat_history = await ctx.get("chat_history")
 
-        # convert the TransferToAgent pydantic model to a tool
-        tools = [get_function_tool(TransferToAgent)]
+            agent_context_str = ""
+            for agent_name, agent_config in agent_configs.items():
+                agent_context_str += f"{agent_name}: {agent_config.description}\n"
 
-        response = await llm.achat_with_tools(tools, chat_history=llm_input)
-        tool_calls = llm.get_tool_calls_from_response(
-            response, error_on_no_tool_call=False
-        )
-
-        # if no tool calls were made, the orchestrator probably needs more information
-        if len(tool_calls) == 0:
-            chat_history.append(response.message)
-            return StopEvent(
-                result={
-                    "response": response.message.content,
-                    "chat_history": chat_history,
-                }
+            user_state = await ctx.get("user_state")
+            user_state_str = "\n".join([f"{k}: {v}" for k, v in user_state.items()])
+            system_prompt = self.orchestrator_prompt.format(
+                agent_context_str=agent_context_str, user_state_str=user_state_str
             )
 
-        tool_call = tool_calls[0]
-        selected_agent = tool_call.tool_kwargs["agent_name"]
-        await ctx.set("active_speaker", selected_agent)
+            llm_input = [ChatMessage(role="system", content=system_prompt)] + chat_history
+            llm = await ctx.get("llm")
 
-        ctx.write_event_to_stream(
-            ProgressEvent(msg=f"Transferring to agent {selected_agent}")
-        )
+            # convert the TransferToAgent pydantic model to a tool
+            tools = [get_function_tool(TransferToAgent)]
+
+            response = await llm.achat_with_tools(tools, chat_history=llm_input)
+            tool_calls = llm.get_tool_calls_from_response(
+                response, error_on_no_tool_call=False
+            )
+
+            # if no tool calls were made, the orchestrator probably needs more information
+            if len(tool_calls) == 0:
+                chat_history.append(response.message)
+                return StopEvent(
+                    result={
+                        "response": response.message.content,
+                        "chat_history": chat_history,
+                    }
+                )
+
+            tool_call = tool_calls[0]
+            selected_agent = tool_call.tool_kwargs["agent_name"]
+            await ctx.set("active_speaker", selected_agent)
+
+            ctx.write_event_to_stream(
+                ProgressEvent(msg=f"Transferring to agent {selected_agent}")
+            )
 
         return ActiveAgentEvent()

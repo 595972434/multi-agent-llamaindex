@@ -55,7 +55,7 @@ Here, we see the orchestration agent routing to the health coaching agent, and t
 
 <blockquote>
 <span style="color:blue">AGENT >>  Hello! How can I assist you today?</span>
-<span style="color:white">USER >> How to learn genai</span>
+<span style="color:white">USER >> is eating a lot of apples considered healthy?</span>
 <span style="color:green">SYSTEM >> Transferring to agent Information Agent</span>
 <span style="color:blue">AGENT >> To learn about generative AI (GenAI), you can follow these steps: xxxxxxx </span>
 <span style="color:white">bye</span>

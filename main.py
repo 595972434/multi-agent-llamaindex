@@ -19,12 +19,7 @@ from utils import FunctionToolWithContext
 
 
 def get_initial_state() -> dict:
-    return {
-        "username": None,
-        "session_token": None,
-        "account_id": None,
-        "account_balance": None,
-    }
+    return {}
 
 
 def get_health_coach_tools() -> list[BaseTool]:
@@ -68,7 +63,8 @@ You are a helpful assistant that is coaching a user to have better health.
 You must follow those steps:
 1. call "get_user_information" to get the user_persona and user tasks.
 2. call "get_reference_from_rag" to get the reference information from RAG.
-3. Use the information from step 1 and 2 to answer the user's question.
+3. Ask user the goal of health coaching.
+4. Use the information from step 1 and 2 and the user's goal to generate 3 related tasks, MUST give the suggestion directly, DO NOT ask user question.
 Note: the function call might be rejected by use, if so, MUST highlight function call status in the beginning of your response.
             """,
             tools=get_health_coach_tools(),

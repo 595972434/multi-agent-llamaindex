@@ -29,25 +29,14 @@ def get_health_coach_tools() -> list[BaseTool]:
         ctx.write_event_to_stream(ProgressEvent(msg="Retrieving user information"))
         response = requests.get('http://localhost:3000/user-info')
         user_info = response.json()
-        print(f"Get the user information from API: {user_info}")
         user_state = await ctx.get("user_state")
         user_state["user_persona"] = user_info["user_persona"]
         user_state["user_tasks"] = user_info["user_tasks"]
         await ctx.set("user_state", user_state)
         return f"The user information is {user_state["user_persona"]} and the user tasks are {user_state["user_tasks"]}."
 
-    async def get_reference_from_rag(ctx: Context) -> str:
-        """Get more reference from RAG."""
-        mocked_rag_return = ["Walking regularly helps you grow taller and helps you sleep", "Eating fruits can ensure normal intake of vitamins and contribute to health"]
-        ctx.write_event_to_stream(ProgressEvent(msg="Retrieving reference from RAG"))
-        user_state = await ctx.get("user_state")
-        user_state["user_reference"] = mocked_rag_return
-        await ctx.set("user_state", user_state)
-        return f"The reference information from RAG is {user_state["user_reference"]}."
-
     return [
         FunctionToolWithContext.from_defaults(async_fn=get_user_information),
-        FunctionToolWithContext.from_defaults(async_fn=get_reference_from_rag)
     ]
 
 
@@ -63,11 +52,16 @@ def get_agent_configs() -> list[AgentConfig]:
             system_prompt="""
 You are a helpful assistant that is coaching a user to have better health.
 You must follow those steps:
-1. call "get_user_information" to get the user_persona and user tasks.
-2. call "get_reference_from_rag" to get the reference information from RAG.
-3. Ask user the goal of health coaching.
-4. Use the information from step 1 and 2 and the user's goal to generate 3 related tasks, MUST give the suggestion directly, DO NOT ask user question.
-Note: the function call might be rejected by use, if so, MUST highlight function call status in the beginning of your response.
+1. call "get_user_information" directly to get the user_persona and user tasks. If the function call is rejected by user, end the conversation with a polite tone and highlight function call status and reason 
+2. Ask user the goal of health coaching with some candidates.
+3. Use the user information and the user's goal to generate 3 related tasks, MUST give the suggestion directly, DO NOT ask user question.
+Note: the final response should be a json with following format:
+    {
+        "user_info": xxxxxx,
+        "user_goal": xxxxxx,
+        "recommended_task": ["task1", "task2", "task3"],
+        "reason": xxxxxx
+    }
             """,
             tools=get_health_coach_tools(),
             tools_requiring_human_confirmation=["get_user_information"]

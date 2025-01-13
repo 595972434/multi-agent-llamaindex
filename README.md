@@ -43,10 +43,10 @@ At the beginning of the conversation, no active speaker is set, so you get route
 <span style="color:green">SYSTEM >> I need approval for the following tool call: get_user_information {} </span>
 <span style="color:white">Do you approve? (y/n): y</span>
 <span style="color:green">SYSTEM >> Retrieving user information</span>
-<span style="color:green">SYSTEM >> Tool get_user_information called with {} returned The user information is {'age': 25, 'weight': 70, 'height': 180} and the user tasks are ['walk 1000 steps', 'eat two apples']. </span>
-<span style="color:green">SYSTEM >> Retrieving reference from RAG</span>
-<span style="color:green">SYSTEM >> Tool get_reference_from_rag called with {} returned The reference information from RAG is ['Walking regularly helps you grow taller and helps you sleep', 'Eating fruits can ensure normal intake of vitamins and contribute to health']. </span>
-<span style="color:blue">AGENT >>  Great! Here's how we can get you started with a health coaching plan: xxxxxx </span>
+<span style="color:green">SYSTEM >> Tool get_user_information called with {} returned The user information is {'age': 25, 'weight': 70, 'height': 180} and the user tasks are ['Walk 1000 steps everyday', 'Eat more green vegetables']. </span>
+<span style="color:blue">AGENT >>  Great! To tailor our health coaching to your needs, could you please share your specific health goal with me? </span>
+<span style="color:white">USER >> gain muscle </span>
+<span style="color:blue">AGENT >> Final response in json format </span>
 <span style="color:white">bye</span>
 </blockquote>
 
@@ -55,14 +55,13 @@ Here, we see the orchestration agent routing to the health coaching agent, and t
 
 <blockquote>
 <span style="color:blue">AGENT >>  Hello! How can I assist you today?</span>
-<span style="color:white">USER >> is eating a lot of apples considered healthy?</span>
+<span style="color:white">USER >> Is eating a lot of apples considered healthy?</span>
 <span style="color:green">SYSTEM >> Transferring to agent Information Agent</span>
-<span style="color:blue">AGENT >> To learn about generative AI (GenAI), you can follow these steps: xxxxxxx </span>
+<span style="color:blue">AGENT >> Eating apples can be a healthy part of a balanced diet, xxxxxxx </span>
 <span style="color:white">bye</span>
 </blockquote>
 
 Here, we see the orchestration agent routing to the information agent since we send a general question of genai.
 
 ## What's next
-- Add real RAG function to retrieve the reference from Vector DB
-- Add real tool calls to get user information via api or DB
+- Add real tool calls to get user information via api

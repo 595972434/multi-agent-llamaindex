@@ -120,7 +120,7 @@ class SystemAgent(Workflow):
         active_speaker = await ctx.get("active_speaker", default="")
         user_msg = ev.get("user_msg")
         agent_configs = ev.get("agent_configs", default=[])
-        llm: LLM = ev.get("llm", default=OpenAI(model="gpt-4o", temperature=0.3))
+        llm: LLM = ev.get("llm", default=OpenAI(model="gpt-4o", temperature=0.1))
         chat_history = ev.get("chat_history", default=[])
         initial_state = ev.get("initial_state", default={})
         if (

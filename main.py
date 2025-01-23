@@ -8,6 +8,7 @@ from llama_index.core.tools import BaseTool
 from llama_index.core.workflow import Context
 from llama_index.llms.openai import OpenAI
 from llama_index.utils.workflow import draw_all_possible_flows
+from nemoguardrails import RailsConfig, LLMRails
 
 from workflow import (
     AgentConfig,
@@ -33,7 +34,7 @@ def get_health_coach_tools() -> list[BaseTool]:
         user_state["user_persona"] = user_info["user_persona"]
         user_state["user_tasks"] = user_info["user_tasks"]
         await ctx.set("user_state", user_state)
-        return f"The user information is {user_state["user_persona"]} and the user tasks are {user_state["user_tasks"]}."
+        return f"The user information is {user_state['user_persona']} and the user tasks are {user_state['user_tasks']}."
 
     return [
         FunctionToolWithContext.from_defaults(async_fn=get_user_information),
@@ -93,7 +94,8 @@ async def main():
 
     # draw a diagram of the workflow
     # draw_all_possible_flows(workflow, filename="workflow.html")
-
+    config = RailsConfig.from_path("./guardrail_config")
+    rails = LLMRails(config)
     handler = workflow.run(
         user_msg="Hello!",
         agent_configs=agent_configs,

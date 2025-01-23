@@ -3,12 +3,14 @@ import os
 
 import requests
 from dotenv import load_dotenv
+from guardrails import Guard
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.tools import BaseTool
 from llama_index.core.workflow import Context
 from llama_index.llms.openai import OpenAI
 from llama_index.utils.workflow import draw_all_possible_flows
 
+from guardrail_validator import TopicLimit, pii_detect
 from workflow import (
     AgentConfig,
     SystemAgent,
@@ -82,9 +84,17 @@ async def main():
     """Main function to run the workflow."""
 
     from colorama import Fore, Style
+    guard = Guard().use(
+        TopicLimit(threshold=50)
+    ).use(pii_detect, on_fail="noop")
+    
     load_dotenv()
 
     llm = OpenAI(model="gpt-4o", temperature=0, api_base=os.getenv('API_BASE'), api_key=os.getenv('API_KEY'))
+    result = guard(
+        messages=[{"role": "user", "content": "i am Wang Bin i like to eat apple, how to have a good sleep?"}],
+        model="gpt-4o"
+    )
     memory = ChatMemoryBuffer.from_defaults(llm=llm)
     initial_state = get_initial_state()
     agent_configs = get_agent_configs()
